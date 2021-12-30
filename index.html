@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <style>
+    html,
+    body {
+      width: 90%;
+      height: 100vh;
+      margin: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #game {
+      display: flex;
+      flex-wrap: wrap;
+      width: 680px;
+      height: 680px;
+    }
+
+    #start {
+      width: 160px;
+      height: 160px;
+      position: relative;
+      border: 5px solid lightyellow;
+      font-size: 2rem;
+      font-weight: bolder;
+      color: brown;
+      -webkit-text-stroke: 1.5px #fff;
+      background: url(./images/paw.png);
+      cursor: pointer;
+    }
+
+    #start:hover {
+      width: 160px;
+      height: 160px;
+      border: 5px solid lightyellow;
+      font-size: 2rem;
+      font-weight: bolder;
+      color: brown;
+      -webkit-text-stroke: 1.5px #fff;
+      background: url(./images/paw.png);
+      opacity: 0.5;
+    }
+
+    .opacity {
+      opacity: 0.5;
+    }
+
+    .card {
+      width: 160px;
+      height: 160px;
+      position: relative;
+      /* 設定子元素在 3D 空間內 */
+      transform-style: preserve-3d;
+      float: left;
+      margin: 5px;
+      transition: transform 1s;
+    }
+
+    .card-front {
+      width: 100%;
+      height: 100%;
+      background-image: url(./images/card_cat1.png);
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      position: absolute;
+      /* 把花色翻轉到下面 */
+      transform: rotateY(180deg);
+      /* 翻過來後隱藏另一面 */
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+    }
+
+    .card-back {
+      width: 100%;
+      height: 100%;
+      background-image: url(./images/card_front.png);
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      position: absolute;
+      /* 翻過來後隱藏另一面 */
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+    }
+
+    .card-open {
+      transform: rotateY(180deg);
+    }
+
+    .fixcard {
+      pointer-events: none;
+    }
+  </style>
+</head>
+
+<body>
+  <input type="button" id="start" value="START">
+  <!-- <input type="button" id="reset" value="RESET"> -->
+  <div id="game"></div>
+  <script src="./jquery-3.6.0.min.js"></script>
+  <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script>
+    // 產生 16 張卡片
+    for (let i = 0; i < 16; i++) {
+      $('#game').append(`
+        <div class="card">
+          <div class="card-front"></div>
+          <div class="card-back"></div>
+        </div>
+      `)
+    }
+    // 遊戲簡介視窗
+    Swal.fire({
+      title: '找到藏在各處的貓咪們，小心不要把玩具拿在手上哦！',
+      width: 600,
+      padding: '3em',
+      background: '#fff url(./images/background.png)'
+    })
+    // 觸發開始按鈕前無法翻牌
+    $('.card').addClass('fixcard')
+
+    // 決定數字並打散
+    $('#start').click(function () {
+      $(this).attr('disabled', true)
+      $('#start').addClass('opacity')
+      $('.card').removeClass('fixcard')
+
+      for (let i = 0; i < 16; i++) {
+        // 決定數字
+        const num = i % 8 + 1
+        $('.card').eq(i).find('.card-front').css('background-image', `url(./images/card_cat${num}.png)`)
+        $('.card').eq(i).attr('data-card', num)
+
+        // 打散
+        const target = Math.round(Math.random() * 15)
+        $('.card').eq(target).insertAfter($('.card').eq(i))
+      }
+    })
+
+    // 重置卡片順序(配對到逗貓棒時)
+    function reset() {
+      // 把已翻過的牌透明度改回1
+      if ($('.card').find('.card-front').css('opacity') == 0) {
+        $('.card-ok').css('opacity', 1)
+        $('.card-front').css('opacity', 1)
+      }
+      // 把卡片翻回來
+      $('.card').removeClass('card-open')
+      $('.card').removeClass('fixcard')
+      $('.card-ok').removeClass('card-ok')
+
+      for (let i = 0; i < 16; i++) {
+        // 再次決定數字
+        const num = i % 8 + 1
+        $('.card').eq(i).find('.card-front').css('background-image', `url(./images/card_cat${num}.png)`)
+        $('.card').eq(i).attr('data-card', num)
+
+        // 打散
+        const target = Math.round(Math.random() * 15)
+        $('.card').eq(target).insertAfter($('.card').eq(i))
+      }
+    }
+
+    // 翻牌
+    $('#game').on('click', '.card', function () {
+      // 最多只能翻兩張牌，且這張牌還沒翻開
+      if ($('.card-open').length < 2 && !$(this).hasClass('card-open')) {
+        $(this).addClass('card-open')
+      }
+
+      // 如果翻開兩張了
+      if ($('.card-open').length === 2) {
+        // 如果配對到逗貓棒，重置卡片
+        if ($('.card-open').eq(0).attr('data-card') === "8" && $('.card-open').eq(1).attr('data-card') === "8") {
+          Swal.fire({
+            title: '大混亂!!!',
+            text: '貓咪正在爭奪逗貓棒',
+            imageUrl: 'https://image.freepik.com/free-vector/cat-doodle-element_53876-117811.jpg',
+            imageWidth: 450,
+            imageHeight: 450,
+            imageAlt: '貓咪爭奪中',
+          })
+          reset()
+        }
+
+        // 如果兩張數字一樣
+        if ($('.card-open').eq(0).attr('data-card') === $('.card-open').eq(1).attr('data-card')) {
+
+          // 使用 card-ok 標記已完成並淡出
+          $('.card-open').addClass('card-ok')
+          // 將 card-front 淡出而不是 .card，因為對 card 淡出會把 3d 壓平
+          $('.card-open .card-front').fadeTo(1000, 0)
+        }
+
+        // 不管一不一樣都翻回來
+        setTimeout(() => {
+          // 如果 .card-open 裡的 card-front 透明度不是 1，把 .card-open 透明度設為 0
+          // .each() 類似 for of，裡面的 $(this) 代表迴圈正在跑的元素
+          $('.card-open').each(function () {
+            if ($(this).find('.card-front').css('opacity') != 1) {
+              $(this).css('opacity', 0)
+            }
+          })
+
+          $('.card-open').removeClass('card-open')
+
+          if ($('.card-ok').length === 14) {
+            Swal.fire({
+              title: '恭喜過關～！！',
+              imageUrl: 'https://image.freepik.com/free-vector/cats-doodle-pattern-background_53876-100663.jpg',
+              imageWidth: 450,
+              imageHeight: 300,
+            })
+            $('#start').attr('disabled', false)
+            $('#start').removeClass('opacity')
+            reset()
+          }
+        }, 1000)
+      }
+    })
+  </script>
+</body>
+
+</html>
